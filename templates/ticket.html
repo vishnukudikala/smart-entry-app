@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Your Ticket — SmartEntry{% endblock %}
+{% block content %}
+
+<div class="ticket-page">
+    <div id="ticket-container">
+        <div class="loading-state"><div class="spinner"></div><p>Loading your ticket...</p></div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+const bookingRef = "{{ booking_ref }}";
+fetch(`/api/ticket/${bookingRef}`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            document.getElementById('ticket-container').innerHTML = '<div class="error-msg">Ticket not found.</div>';
+            return;
+        }
+        const t = data.ticket;
+        const date = new Date(t.event_date);
+        document.getElementById('ticket-container').innerHTML = `
+            <div class="full-ticket ${t.checked_in ? 'checked-in' : ''}">
+                <div class="ft-header">
+                    <div class="ft-logo">⬡ SmartEntry</div>
+                    <div class="ft-status ${t.checked_in ? 'status-used' : 'status-valid'}">
+                        ${t.checked_in ? '✓ USED' : '✓ VALID'}
+                    </div>
+                </div>
+                <div class="ft-event">
+                    <h2>${t.event_title}</h2>
+                    <div class="ft-meta">
+                        <span>📍 ${t.event_venue}</span>
+                        <span>🗓 ${date.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span>
+                        <span>🕐 ${date.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
+                    </div>
+                </div>
+                <div class="ft-divider"><div class="hole left"></div><div class="dash-line"></div><div class="hole right"></div></div>
+                <div class="ft-body">
+                    <div class="ft-person">
+                        <div class="fp-row"><label>Name</label><strong>${t.full_name}</strong></div>
+                        <div class="fp-row"><label>Email</label><span>${t.email}</span></div>
+                        <div class="fp-row"><label>Phone</label><span>${t.phone}</span></div>
+                        ${t.age ? `<div class="fp-row"><label>Age</label><span>${t.age}</span></div>` : ''}
+                        <div class="fp-row"><label>Tickets</label><span>${t.num_tickets}</span></div>
+                        <div class="fp-row"><label>Paid</label><span>₹${t.total_amount.toLocaleString()}</span></div>
+                        <div class="fp-row"><label>Booking</label><span>${t.booking_ref}</span></div>
+                    </div>
+                    <div class="ft-qr-section">
+                        <img src="${t.qr_code}" class="ft-qr-img" alt="QR">
+                        <div class="ft-entry-code">${t.entry_code}</div>
+                        <p class="ft-entry-label">Entry Code</p>
+                    </div>
+                </div>
+                ${t.checked_in ? `<div class="ft-checkin-info">✓ Checked in at ${t.checked_in_at}</div>` : ''}
+                <div class="ft-footer">
+                    <span>Booked on ${new Date(t.booked_at).toLocaleDateString('en-IN')}</span>
+                    <span>Payment: ${t.payment_status.toUpperCase()}</span>
+                </div>
+            </div>
+            <div class="ticket-actions">
+                <button class="btn-primary" onclick="window.print()">🖨 Print</button>
+                <a href="/events" class="btn-outline">Browse Events</a>
+            </div>`;
+    });
+</script>
+{% endblock %}

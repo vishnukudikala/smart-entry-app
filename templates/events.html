@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Events — SmartEntry{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>Upcoming Events</h1>
+    <p>Discover and book the best events near you</p>
+</div>
+
+<div class="container">
+    <div class="filters-bar">
+        <button class="filter-btn active" data-cat="all">All</button>
+        <button class="filter-btn" data-cat="Music">Music</button>
+        <button class="filter-btn" data-cat="Conference">Conference</button>
+        <button class="filter-btn" data-cat="Entertainment">Entertainment</button>
+        <button class="filter-btn" data-cat="Art">Art</button>
+        <button class="filter-btn" data-cat="Business">Business</button>
+    </div>
+
+    <div class="events-grid" id="events-grid">
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading events...</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+let allEvents = [];
+
+fetch('/api/events')
+    .then(r => r.json())
+    .then(data => {
+        allEvents = data.events || [];
+        renderEvents(allEvents);
+    })
+    .catch(() => {
+        document.getElementById('events-grid').innerHTML = '<p class="error-msg">Failed to load events. Please try again.</p>';
+    });
+
+function renderEvents(events) {
+    const grid = document.getElementById('events-grid');
+    if (!events.length) {
+        grid.innerHTML = '<div class="empty-state"><span>🎭</span><p>No events found</p></div>';
+        return;
+    }
+    grid.innerHTML = events.map(ev => {
+        const date = new Date(ev.event_date);
+        const avail = ev.capacity - ev.tickets_sold;
+        const pct = Math.round((ev.tickets_sold / ev.capacity) * 100);
+        return `
+        <div class="event-card" data-cat="${ev.category}">
+            <div class="ec-img" style="background-image:url('${ev.image_url}')">
+                <span class="ec-cat">${ev.category}</span>
+                ${avail < 20 ? '<span class="ec-hot">🔥 Almost Full</span>' : ''}
+            </div>
+            <div class="ec-body">
+                <h3 class="ec-title">${ev.title}</h3>
+                <p class="ec-desc">${ev.description.substring(0, 100)}...</p>
+                <div class="ec-meta">
+                    <span>📍 ${ev.venue}</span>
+                    <span>🗓 ${date.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span>
+                    <span>🕐 ${date.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>
+                </div>
+                <div class="ec-availability">
+                    <div class="avail-bar"><div class="avail-fill" style="width:${pct}%"></div></div>
+                    <span>${avail} tickets left</span>
+                </div>
+                <div class="ec-footer">
+                    <div class="ec-price">₹${ev.price.toLocaleString()}<span>/ticket</span></div>
+                    <button class="btn-book" onclick="location.href='/booking/${ev.id}'">Book Now</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const cat = this.dataset.cat;
+        renderEvents(cat === 'all' ? allEvents : allEvents.filter(e => e.category === cat));
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}Scan Ticket — SmartEntry{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scan.css') }}">
+{% endblock %}
+{% block content %}
+
+<div class="scan-page">
+    <div class="scan-header">
+        <h1>Ticket Scanner</h1>
+        <p>Scan attendee QR codes for event entry verification</p>
+    </div>
+
+    <div class="scan-container">
+        <div class="scanner-box" id="scanner-box">
+            <div id="camera-view">
+                <video id="preview" autoplay playsinline muted></video>
+                <canvas id="scan-canvas"></canvas>
+                <div class="scan-overlay">
+                    <div class="scan-corner tl"></div>
+                    <div class="scan-corner tr"></div>
+                    <div class="scan-corner bl"></div>
+                    <div class="scan-corner br"></div>
+                    <div class="scan-line"></div>
+                </div>
+                <p class="scan-tip">Point camera at the QR code</p>
+            </div>
+            <div id="start-screen">
+                <div class="scan-icon">📷</div>
+                <h3>Ready to Scan</h3>
+                <p>Tap the button below to start the camera scanner</p>
+                <button class="btn-primary" onclick="startScanner()">Start Camera</button>
+            </div>
+        </div>
+
+        <!-- Manual entry -->
+        <div class="manual-entry">
+            <p>Or enter booking reference manually:</p>
+            <div class="manual-input-row">
+                <input type="text" id="manual-ref" placeholder="e.g. BK1A2B3C4D5E" maxlength="14">
+                <button class="btn-scan-manual" onclick="manualScan()">Verify</button>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="scan-result" class="scan-result hidden"></div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+let videoStream = null;
+let scanInterval = null;
+
+async function startScanner() {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('camera-view').style.display = 'block';
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        const video = document.getElementById('preview');
+        video.srcObject = videoStream;
+        video.play();
+        scanInterval = setInterval(scanFrame, 300);
+    } catch (e) {
+        document.getElementById('camera-view').innerHTML = `<p class="err-msg">Camera access denied. Please use manual entry below.</p>`;
+    }
+}
+
+function scanFrame() {
+    const video = document.getElementById('preview');
+    const canvas = document.getElementById('scan-canvas');
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(img.data, img.width, img.height);
+    if (code) {
+        clearInterval(scanInterval);
+        processQR(code.data);
+    }
+}
+
+function manualScan() {
+    const ref = document.getElementById('manual-ref').value.trim();
+    if (!ref) { showToast('Enter a booking reference', 'error'); return; }
+    processQR(ref);
+}
+
+async function processQR(qrData) {
+    showResult('loading', null);
+    try {
+        const res = await fetch('/api/scan', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({qr_data: qrData})
+        });
+        const data = await res.json();
+        if (data.success) {
+            showResult(data.already_checked_in ? 'duplicate' : 'success', data.attendee);
+        } else {
+            showResult('error', null, data.error);
+        }
+    } catch (e) {
+        showResult('error', null, 'Network error');
+    }
+}
+
+function showResult(type, attendee, errorMsg) {
+    const el = document.getElementById('scan-result');
+    el.classList.remove('hidden');
+
+    if (type === 'loading') {
+        el.innerHTML = '<div class="result-loading"><div class="spinner"></div><p>Verifying ticket...</p></div>';
+        el.className = 'scan-result';
+        return;
+    }
+
+    if (type === 'error') {
+        el.className = 'scan-result result-error';
+        el.innerHTML = `
+            <div class="result-icon">✗</div>
+            <h3>Invalid Ticket</h3>
+            <p>${errorMsg || 'Ticket not found'}</p>
+            <button class="btn-scan-again" onclick="resetScanner()">Scan Again</button>`;
+        return;
+    }
+
+    if (type === 'duplicate') {
+        el.className = 'scan-result result-warning';
+        el.innerHTML = `
+            <div class="result-icon">⚠</div>
+            <h3>Already Checked In!</h3>
+            <p>This ticket was already used for entry.</p>
+            ${renderAttendeeCard(attendee)}
+            <button class="btn-scan-again" onclick="resetScanner()">Scan Again</button>`;
+        return;
+    }
+
+    el.className = 'scan-result result-success';
+    el.innerHTML = `
+        <div class="result-icon">✓</div>
+        <h3>Entry Granted!</h3>
+        <p>Welcome! Ticket verified successfully.</p>
+        ${renderAttendeeCard(attendee)}
+        <button class="btn-scan-again" onclick="resetScanner()">Scan Next</button>`;
+}
+
+function renderAttendeeCard(a) {
+    return `
+    <div class="attendee-card">
+        <div class="ac-header">
+            <div class="ac-avatar">${a.full_name.charAt(0).toUpperCase()}</div>
+            <div>
+                <h4>${a.full_name}</h4>
+                <span class="ac-event">${a.event_title}</span>
+            </div>
+        </div>
+        <div class="ac-grid">
+            <div class="ac-item"><label>Entry Code</label><strong class="entry-code-tag">${a.entry_code}</strong></div>
+            <div class="ac-item"><label>Booking Ref</label><span>${a.booking_ref}</span></div>
+            <div class="ac-item"><label>Email</label><span>${a.email}</span></div>
+            <div class="ac-item"><label>Phone</label><span>${a.phone}</span></div>
+            <div class="ac-item"><label>Tickets</label><span>${a.num_tickets}</span></div>
+            <div class="ac-item"><label>Check-In</label><span>${a.checked_in_at || 'Just now'}</span></div>
+        </div>
+        <div class="ac-venue">📍 ${a.event_venue} &nbsp;|&nbsp; 🗓 ${a.event_date}</div>
+    </div>`;
+}
+
+function resetScanner() {
+    document.getElementById('scan-result').classList.add('hidden');
+    document.getElementById('manual-ref').value = '';
+    if (videoStream) {
+        scanInterval = setInterval(scanFrame, 300);
+    }
+}
+
+function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,140 @@
+/* Scan page styles */
+.scan-page { max-width: 700px; margin: 100px auto 60px; padding: 0 24px; }
+
+.scan-header { text-align: center; margin-bottom: 40px; }
+.scan-header h1 { font-family: var(--font-head); font-size: 42px; font-weight: 800; letter-spacing: -1px; }
+.scan-header p { color: var(--muted); margin-top: 8px; font-size: 16px; }
+
+.scan-container { display: flex; flex-direction: column; gap: 24px; }
+
+.scanner-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden; min-height: 320px;
+    display: flex; flex-direction: column;
+}
+
+#camera-view {
+    display: none; position: relative;
+    background: #000; width: 100%; height: 320px; overflow: hidden;
+}
+#preview { width: 100%; height: 100%; object-fit: cover; }
+#scan-canvas { display: none; }
+
+.scan-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+}
+
+.scan-corner {
+    position: absolute; width: 40px; height: 40px;
+    border-color: var(--accent); border-style: solid; border-width: 0;
+}
+.tl { top: 40px; left: 40px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 6px; }
+.tr { top: 40px; right: 40px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 6px; }
+.bl { bottom: 40px; left: 40px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 6px; }
+.br { bottom: 40px; right: 40px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 6px; }
+
+.scan-line {
+    position: absolute; left: 44px; right: 44px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scan-move 2s ease-in-out infinite;
+}
+@keyframes scan-move {
+    0% { top: 44px; opacity: 1; }
+    50% { top: calc(100% - 52px); opacity: 1; }
+    100% { top: 44px; opacity: 1; }
+}
+
+.scan-tip {
+    position: absolute; bottom: 16px; left: 0; right: 0;
+    text-align: center; color: rgba(255,255,255,0.7); font-size: 13px;
+}
+
+#start-screen {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 48px 32px; gap: 12px; text-align: center;
+}
+.scan-icon { font-size: 56px; }
+#start-screen h3 { font-family: var(--font-head); font-size: 22px; font-weight: 800; }
+#start-screen p { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+
+.err-msg { color: var(--accent2); text-align: center; padding: 24px; }
+
+/* Manual Entry */
+.manual-entry {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 24px;
+}
+.manual-entry p { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+
+.manual-input-row { display: flex; gap: 10px; }
+.manual-input-row input {
+    flex: 1; padding: 12px 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-family: monospace; font-size: 15px; letter-spacing: 1px;
+    outline: none; transition: border-color 0.2s;
+}
+.manual-input-row input:focus { border-color: var(--accent); }
+
+.btn-scan-manual {
+    padding: 12px 24px; border-radius: 10px;
+    background: var(--accent); color: white; border: none;
+    cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s;
+    white-space: nowrap;
+}
+.btn-scan-manual:hover { background: #5a52e8; }
+
+/* Results */
+.scan-result {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px; text-align: center;
+}
+.scan-result.hidden { display: none; }
+.scan-result.result-success { border-color: rgba(0,230,118,0.4); background: rgba(0,230,118,0.05); }
+.scan-result.result-error { border-color: rgba(255,23,68,0.4); background: rgba(255,23,68,0.05); }
+.scan-result.result-warning { border-color: rgba(255,214,0,0.4); background: rgba(255,214,0,0.05); }
+
+.result-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; margin: 0 auto 16px;
+    animation: pop 0.3s ease;
+}
+.result-success .result-icon { background: rgba(0,230,118,0.15); color: var(--green); border: 2px solid var(--green); }
+.result-error .result-icon { background: rgba(255,23,68,0.15); color: var(--red); border: 2px solid var(--red); }
+.result-warning .result-icon { background: rgba(255,214,0,0.15); color: var(--yellow); border: 2px solid var(--yellow); }
+
+.scan-result h3 { font-family: var(--font-head); font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.scan-result > p { color: var(--muted); margin-bottom: 16px; }
+
+.result-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 0; color: var(--muted); }
+
+/* Attendee Card */
+.attendee-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; text-align: left; margin: 16px 0;
+}
+.ac-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.ac-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--accent); color: white; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-size: 20px; font-weight: 800; flex-shrink: 0;
+}
+.ac-header h4 { font-family: var(--font-head); font-size: 18px; font-weight: 800; }
+.ac-event { color: var(--muted); font-size: 13px; }
+
+.ac-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.ac-item { display: flex; flex-direction: column; gap: 2px; }
+.ac-item label { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+.ac-item span, .ac-item strong { font-size: 14px; }
+.entry-code-tag { font-family: monospace; color: var(--accent); font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+
+.ac-venue { color: var(--muted); font-size: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+.btn-scan-again {
+    margin-top: 16px; padding: 12px 32px; border-radius: 50px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; font-weight: 600; font-size: 14px;
+    transition: all 0.2s;
+}
+.btn-scan-again:hover { border-color: var(--accent); color: var(--accent); }

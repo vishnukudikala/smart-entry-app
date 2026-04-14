@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% block title %}Book Ticket — SmartEntry{% endblock %}
+{% block content %}
+
+<div class="booking-wrapper">
+    <div class="booking-left" id="event-info">
+        <div class="skeleton-box"></div>
+    </div>
+
+    <div class="booking-right">
+        <div class="booking-steps">
+            <div class="step active" id="step1">
+                <span class="step-num">1</span>
+                <span>Details</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step2">
+                <span class="step-num">2</span>
+                <span>Payment</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step3">
+                <span class="step-num">3</span>
+                <span>Ticket</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Personal Details -->
+        <div class="form-panel active" id="panel-1">
+            <h2>Your Details</h2>
+            <p class="form-sub">Enter your information for the event entry pass</p>
+
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="full_name" placeholder="As per ID proof" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="email" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone *</label>
+                    <input type="tel" id="phone" placeholder="+91 XXXXX XXXXX" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Age</label>
+                    <input type="number" id="age" placeholder="25" min="1" max="120">
+                </div>
+                <div class="form-group">
+                    <label>ID Proof Type</label>
+                    <select id="id_proof">
+                        <option value="">Select</option>
+                        <option value="Aadhaar">Aadhaar Card</option>
+                        <option value="PAN">PAN Card</option>
+                        <option value="Passport">Passport</option>
+                        <option value="DL">Driving License</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Number of Tickets</label>
+                <div class="qty-ctrl">
+                    <button type="button" onclick="changeQty(-1)">−</button>
+                    <span id="qty-display">1</span>
+                    <button type="button" onclick="changeQty(1)">+</button>
+                </div>
+            </div>
+            <div class="amount-summary" id="amount-display">
+                <span>Total</span>
+                <span id="total-price">₹0</span>
+            </div>
+            <button class="btn-primary full-width" onclick="goToPayment()">Continue to Payment →</button>
+        </div>
+
+        <!-- Step 2: Payment -->
+        <div class="form-panel" id="panel-2">
+            <h2>Payment</h2>
+            <p class="form-sub">Choose your payment method</p>
+            <div class="payment-methods">
+                <label class="pay-option selected">
+                    <input type="radio" name="payment" value="upi" checked>
+                    <div class="pay-icon">📱</div>
+                    <div>
+                        <strong>UPI</strong>
+                        <p>Pay via any UPI app</p>
+                    </div>
+                </label>
+                <label class="pay-option">
+                    <input type="radio" name="payment" value="card">
+                    <div class="pay-icon">💳</div>
+                    <div>
+                        <strong>Card</strong>
+                        <p>Debit / Credit Card</p>
+                    </div>
+                </label>
+                <label class="pay-option">
+                    <input type="radio" name="payment" value="netbanking">
+                    <div class="pay-icon">🏦</div>
+                    <div>
+                        <strong>Net Banking</strong>
+                        <p>All major banks</p>
+                    </div>
+                </label>
+            </div>
+
+            <div class="payment-summary">
+                <div class="ps-row"><span>Subtotal</span><span id="ps-sub">₹0</span></div>
+                <div class="ps-row"><span>Convenience Fee</span><span>₹0</span></div>
+                <div class="ps-row total"><span>Total Payable</span><span id="ps-total">₹0</span></div>
+            </div>
+
+            <button class="btn-primary full-width" onclick="processPayment()">
+                <span id="pay-btn-text">Pay Now →</span>
+                <div class="btn-spinner hidden" id="pay-spinner"></div>
+            </button>
+            <button class="btn-back" onclick="goBack(1)">← Back</button>
+        </div>
+
+        <!-- Step 3: Ticket -->
+        <div class="form-panel" id="panel-3">
+            <div class="success-state">
+                <div class="success-icon">✓</div>
+                <h2>Booking Confirmed!</h2>
+                <p>Your entry QR code is ready</p>
+            </div>
+            <div id="ticket-result"></div>
+            <button class="btn-primary full-width" onclick="window.print()">🖨 Print Ticket</button>
+            <button class="btn-outline full-width mt-1" onclick="location.href='/events'">Browse More Events</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+const eventId = {{ event_id }};
+let eventData = null;
+let numTickets = 1;
+
+// Load event
+fetch(`/api/events/${eventId}`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { alert('Event not found'); return; }
+        eventData = data.event;
+        const date = new Date(eventData.event_date);
+        document.getElementById('event-info').innerHTML = `
+            <div class="event-info-card">
+                <div class="eic-img" style="background-image:url('${eventData.image_url}')"></div>
+                <div class="eic-body">
+                    <span class="eic-cat">${eventData.category}</span>
+                    <h2>${eventData.title}</h2>
+                    <p>📍 ${eventData.venue}</p>
+                    <p>🗓 ${date.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p>
+                    <p>🕐 ${date.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</p>
+                    <p>🎟 ${eventData.available} tickets available</p>
+                    <div class="eic-price">₹${eventData.price.toLocaleString()} <span>per ticket</span></div>
+                </div>
+            </div>`;
+        updateTotal();
+    });
+
+function changeQty(delta) {
+    const max = eventData ? eventData.available : 10;
+    numTickets = Math.max(1, Math.min(max, numTickets + delta));
+    document.getElementById('qty-display').textContent = numTickets;
+    updateTotal();
+}
+
+function updateTotal() {
+    if (!eventData) return;
+    const total = eventData.price * numTickets;
+    document.getElementById('total-price').textContent = '₹' + total.toLocaleString();
+    document.getElementById('ps-sub').textContent = '₹' + total.toLocaleString();
+    document.getElementById('ps-total').textContent = '₹' + total.toLocaleString();
+}
+
+function goToPayment() {
+    const name = document.getElementById('full_name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    if (!name || !email || !phone) {
+        showToast('Please fill all required fields', 'error');
+        return;
+    }
+    setStep(2);
+}
+
+function goBack(step) { setStep(step); }
+
+function setStep(n) {
+    document.querySelectorAll('.form-panel').forEach((p,i) => {
+        p.classList.toggle('active', i+1 === n);
+    });
+    document.querySelectorAll('.step').forEach((s,i) => {
+        s.classList.toggle('active', i+1 <= n);
+        s.classList.toggle('done', i+1 < n);
+    });
+}
+
+async function processPayment() {
+    const btn = document.getElementById('pay-btn-text');
+    const spinner = document.getElementById('pay-spinner');
+    btn.textContent = 'Processing...';
+    spinner.classList.remove('hidden');
+
+    // Simulate payment processing
+    await new Promise(r => setTimeout(r, 2000));
+
+    const payload = {
+        event_id: eventId,
+        full_name: document.getElementById('full_name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        age: document.getElementById('age').value || null,
+        id_proof: document.getElementById('id_proof').value,
+        num_tickets: numTickets,
+        payment_method: document.querySelector('input[name="payment"]:checked').value
+    };
+
+    try {
+        const res = await fetch('/api/book', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            setStep(3);
+            showTicketResult(data);
+        } else {
+            showToast(data.error || 'Booking failed', 'error');
+            btn.textContent = 'Pay Now →';
+            spinner.classList.add('hidden');
+        }
+    } catch (e) {
+        showToast('Network error. Please try again.', 'error');
+        btn.textContent = 'Pay Now →';
+        spinner.classList.add('hidden');
+    }
+}
+
+function showTicketResult(data) {
+    document.getElementById('ticket-result').innerHTML = `
+        <div class="ticket-card">
+            <div class="ticket-qr">
+                <img src="${data.qr_code}" alt="QR Code">
+            </div>
+            <div class="ticket-details">
+                <div class="td-row">
+                    <span>Booking Ref</span>
+                    <strong>${data.booking_ref}</strong>
+                </div>
+                <div class="td-row highlight">
+                    <span>Entry Code</span>
+                    <strong class="entry-code-display">${data.entry_code}</strong>
+                </div>
+                <div class="td-row">
+                    <span>Amount Paid</span>
+                    <strong>₹${data.total_amount.toLocaleString()}</strong>
+                </div>
+            </div>
+            <p class="ticket-note">📱 Save this QR code — it's your entry ticket!</p>
+            <a href="/ticket/${data.booking_ref}" class="view-ticket-link">View Full Ticket →</a>
+        </div>`;
+}
+
+function showToast(msg, type='info') {
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// Payment option selection
+document.addEventListener('change', e => {
+    if (e.target.name === 'payment') {
+        document.querySelectorAll('.pay-option').forEach(o => o.classList.remove('selected'));
+        e.target.closest('.pay-option').classList.add('selected');
+    }
+});
+</script>
+{% endblock %}

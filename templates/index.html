@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}SmartEntry — Smart Event Ticketing{% endblock %}
+{% block content %}
+
+<section class="hero">
+    <div class="hero-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="grid-lines"></div>
+    </div>
+    <div class="hero-content">
+        <div class="hero-badge">✦ Next-Gen Event Access</div>
+        <h1 class="hero-title">
+            Your Event.<br>
+            <span class="gradient-text">Your Entry.</span><br>
+            Seamlessly.
+        </h1>
+        <p class="hero-sub">Book tickets online, get instant QR codes, and experience frictionless event entry. All in one place.</p>
+        <div class="hero-cta">
+            <a href="/events" class="btn-primary">Explore Events →</a>
+            <a href="/scan" class="btn-outline">Scan a Ticket</a>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="phone-mockup">
+            <div class="phone-screen">
+                <div class="phone-header">SmartEntry</div>
+                <div class="qr-preview">
+                    <div class="qr-grid">
+                        {% for i in range(64) %}
+                        <div class="qr-cell {% if [0,1,5,8,12,15,20,25,30,35,40,45,50,55,60,63,2,3,10,13,16,18,22,28,33,38,43,48,53,58]|select('equalto', i)|list %}filled{% endif %}"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="phone-entry-code">SE-X7K2M9P4</div>
+                <div class="phone-name">John Doe</div>
+                <div class="phone-event">Neon Nights Festival</div>
+                <div class="status-badge">✓ VALID TICKET</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <h2 class="section-title">How It Works</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎫</div>
+                <h3>Book Online</h3>
+                <p>Browse events, choose your seats, pay securely and get instant confirmation.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📲</div>
+                <h3>Get QR Ticket</h3>
+                <p>Receive a unique QR code linked to your personal entry details and booking.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Instant Entry</h3>
+                <p>Scan at the gate for instant verification and seamless, contactless entry.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="latest-events-preview">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Latest Events</h2>
+            <a href="/events" class="view-all">View All →</a>
+        </div>
+        <div class="events-preview-grid" id="preview-events">
+            <div class="loading-pulse"></div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/events')
+    .then(r => r.json())
+    .then(data => {
+        const grid = document.getElementById('preview-events');
+        if (!data.success || !data.events.length) {
+            grid.innerHTML = '<p style="color:#aaa">No events available</p>';
+            return;
+        }
+        grid.innerHTML = data.events.slice(0, 3).map(ev => `
+            <div class="event-preview-card" onclick="location.href='/booking/${ev.id}'">
+                <div class="epc-img" style="background-image:url('${ev.image_url}')">
+                    <span class="epc-cat">${ev.category}</span>
+                </div>
+                <div class="epc-body">
+                    <h4>${ev.title}</h4>
+                    <p class="epc-venue">📍 ${ev.venue}</p>
+                    <p class="epc-date">🗓 ${new Date(ev.event_date).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}</p>
+                    <div class="epc-footer">
+                        <span class="epc-price">₹${ev.price.toLocaleString()}</span>
+                        <span class="epc-avail">${ev.available} left</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    });
+</script>
+{% endblock %}
