@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SmartEntry — Smart Event Ticketing & QR Entry System
 
 ## Tech Stack
@@ -167,3 +168,7 @@ smart_entry/
 
 ## License
 MIT — Free to use and modify.
+=======
+# smart-entry-app
+Smart Event Ticketing with QR Code Entry
+>>>>>>> 916c3cf92dbc39aff507fc67ea02b20959df40c5
